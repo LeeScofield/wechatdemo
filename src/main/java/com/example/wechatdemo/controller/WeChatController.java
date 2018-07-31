@@ -1,10 +1,12 @@
 package com.example.wechatdemo.controller;
 
+import com.example.wechatdemo.model.Message;
 import com.example.wechatdemo.model.Signature;
 import com.example.wechatdemo.util.SHA1Util;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -42,9 +44,13 @@ public class WeChatController {
         }else{
             return null;
         }
-
     }
 
-
+    @ResponseBody
+    @RequestMapping(value = "receiveMessage",method = RequestMethod.POST)
+    public String receiveMessage(@RequestBody Message message){
+        System.out.println(message);
+        return "hello";
+    }
 
 }
