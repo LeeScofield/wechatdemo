@@ -20,7 +20,8 @@ public enum MsgType {
     shortvideo("shortvideo", "小视频消息"),
     location("location", "地理位置消息"),
     link("link", "链接消息"),
-    ;
+    music("music","音乐消息"),
+    news("news","图文消息");
 
     @Getter
     @Setter

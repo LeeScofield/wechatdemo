@@ -5,10 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.*;
 
 /**
  * Created by Lee on 2018-07-31.
@@ -21,17 +18,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Getter@Setter@ToString
 @XmlRootElement(name = "xml") //根元素
 @XmlAccessorType(XmlAccessType.FIELD) //XML元素映射类字段，大小写敏感
-public class MessageIn {
+public class MsgIn {
 //    @XmlElement(name = "FromUserName")
     private String FromUserName; //发送方帐号（一个OpenID）
-    private String CreateTime;	 //消息创建时间 （整型）
+    private Long CreateTime;	 //消息创建时间 （整型）
     private String ToUserName;	 //开发者微信号
     private String MsgType; //[text,image,voice,video,shortvideo,location,link]
     private String MsgId;	 //消息id，64位整型
 
     //--------文本
     private String Content; //文本消息内容
-
 
     private String MediaId;  //图片消息媒体id，可以调用多媒体文件下载接口拉取数据。
 
