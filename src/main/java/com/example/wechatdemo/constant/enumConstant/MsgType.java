@@ -1,4 +1,4 @@
-package com.example.wechatdemo.model;
+package com.example.wechatdemo.constant.enumConstant;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -21,7 +21,9 @@ public enum MsgType {
     location("location", "地理位置消息"),
     link("link", "链接消息"),
     music("music","音乐消息"),
-    news("news","图文消息");
+    news("news","图文消息"),
+    event("event","事件推送")
+    ;
 
     @Getter
     @Setter

@@ -7,4 +7,4 @@
  > https://mp.weixin.qq.com/debug/cgi-bin/sandbox?t=sandbox/login 
   
   ##验证url
-  > /wechat
+  > /wechat2

@@ -4,6 +4,7 @@ import javafx.scene.transform.Scale;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import sun.security.krb5.internal.Ticket;
 
 import javax.xml.bind.annotation.*;
 
@@ -23,7 +24,7 @@ public class MsgIn {
     private String FromUserName; //发送方帐号（一个OpenID）
     private Long CreateTime;	 //消息创建时间 （整型）
     private String ToUserName;	 //开发者微信号
-    private String MsgType; //[text,image,voice,video,shortvideo,location,link]
+    private String MsgType; //[text,image,voice,video,shortvideo,location,link,event]
     private String MsgId;	 //消息id，64位整型
 
     //--------文本
@@ -56,4 +57,17 @@ public class MsgIn {
 
 
 
+    //---------------事件--------------
+    private String Event;	//事件类型，subscribe(订阅)、unsubscribe(取消订阅)
+
+    //--------扫描带参数二维码事件
+    private String EventKey;	//1.事件KEY值，qrscene_为前缀，后面为二维码的参数值 2.事件KEY值，是一个32位无符号整数，即创建二维码时的二维码scene_id
+    private String Ticket;      //二维码的ticket，可用来换取二维码图片
+
+    //--------上报地理位置事件
+    private String Latitude;	//地理位置纬度
+    private String Longitude;	//地理位置经度
+    private String Precision;	//地理位置精度
+
+    //--------自定义菜单事件 EventKey 1.事件KEY值，与自定义菜单接口中KEY值对应 2.事件KEY值，设置的跳转URL
 }
