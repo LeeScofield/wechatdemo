@@ -1,0 +1,27 @@
+{
+  "touser":"OPENID",
+  "template_id":"ryB30160ifXYo58sLt50lca-MpE-_x_p_zaDnoWBH1s",
+  "url":"http://weixin.qq.com/download",
+  "data":{
+    "tip": {
+      "value":"恭喜你购买成功！",
+      "color":"#173177"
+    },
+    "productName":{
+      "value":"巧克力",
+      "color":"#173177"
+    },
+    "orderTime": {
+      "value":"2019-01-30 17:00:00",
+      "color":"#173177"
+    },
+    "amount": {
+      "value":"136.00",
+      "color":"#173177"
+    },
+    "remark":{
+      "value":"欢迎再次购买！",
+      "color":"#173177"
+    }
+  }
+}

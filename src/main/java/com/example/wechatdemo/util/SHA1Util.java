@@ -53,4 +53,10 @@ public class SHA1Util {
         String s=new String(tempArr);
         return s;
     }
+
+    public static void main(String[] args) {
+        String str = "jsapi_ticket=HoagFKDcsGMVCIY2vOjf9qKjXG4EmT3c_jOHeU_fkJaAvbSsSigN_EqvrdaK-_Y8PJ-Oa1YAjIIVO5YDl4jT8w&noncestr=7e6dafc4131b498dbcb783d591f295ba&timestamp=1549198388&url=http://e7gjbp.natappfree.cc/fenxiang";
+        System.out.println(SHA1Util.getSignForSHA1(str));
+
+    }
 }

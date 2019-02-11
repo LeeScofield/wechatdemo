@@ -1,41 +1,72 @@
 package com.example.wechatdemo.controller;
 
+import com.alibaba.fastjson.JSONObject;
+import com.example.wechatdemo.async.AsyncService;
 import com.example.wechatdemo.constant.BaseConstant;
 import com.example.wechatdemo.constant.enumConstant.EventType;
 import com.example.wechatdemo.constant.enumConstant.MsgType;
-import com.example.wechatdemo.model.*;
+import com.example.wechatdemo.data.test.service.TestService;
+import com.example.wechatdemo.model.MsgIn;
+import com.example.wechatdemo.model.MsgOut;
+import com.example.wechatdemo.model.Signature;
 import com.example.wechatdemo.model.message.ImageMsgOut;
 import com.example.wechatdemo.model.message.NewsItem;
 import com.example.wechatdemo.model.message.NewsMsgOut;
 import com.example.wechatdemo.model.message.TextMsgOut;
+import com.example.wechatdemo.util.HttpUtil;
 import com.example.wechatdemo.util.SHA1Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Controller
-@PropertySource("classpath:profile.properties")
 public class WeChatController {
+
+    Logger logger = LoggerFactory.getLogger(WeChatController.class);
 
     @Value("${token}")
     private String token;
 
+    @Autowired
+    private TestService testService;
+    @Autowired
+    private CacheManager cacheManager;
+    @Autowired
+    private RedisTemplate redisTemplate;
+    @Autowired
+    private TaskExecutor taskExecutor;
+    @Autowired
+    private AsyncService asyncService;
+    @Autowired
+    private HttpUtil httpUtil;
     /**
      * 微信接口测试验证(为GET请求)
      * @param signature
      * @return
      * @throws Exception
      */
-    @RequestMapping(value = "wechat",method = RequestMethod.GET)
+    @RequestMapping(value = "/wechat",method = RequestMethod.GET)
     @ResponseBody
     public String weChatValidate(Signature signature) throws Exception{
 
@@ -59,7 +90,7 @@ public class WeChatController {
      * @throws Exception
      */
     @ResponseBody
-    @RequestMapping(value = "wechat",method = RequestMethod.POST,produces = MediaType.APPLICATION_XML_VALUE)
+    @RequestMapping(value = "/wechat",method = RequestMethod.POST,produces = MediaType.APPLICATION_XML_VALUE)
     public MsgOut weChatMessage(@RequestBody MsgIn msgIn) throws Exception {
 
         //得到用户传入的msgType
@@ -105,13 +136,29 @@ public class WeChatController {
     private MsgOut handler_text(MsgIn msgIn){
         TextMsgOut textMsgOut = new TextMsgOut();
 
-        textMsgOut.setFromUserName(msgIn.getToUserName());
-        textMsgOut.setToUserName(msgIn.getFromUserName());
-        textMsgOut.setCreateTime(System.currentTimeMillis());
-        textMsgOut.setMsgType(msgIn.getMsgType());
+        //如果发送消息中带模板关键字，则回复模板消息
+        if (msgIn.getContent().contains("模板")) {
+            String openId = msgIn.getFromUserName();
+            //如果是模板消息，异步处理
+            taskExecutor.execute(() -> {
+                try {
+                    JSONObject jsonObject = httpUtil.sendTempleteMsg(openId);
+                    logger.info(jsonObject.toJSONString());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+            textMsgOut = null;
+        }else{
+            textMsgOut.setFromUserName(msgIn.getToUserName());
+            textMsgOut.setToUserName(msgIn.getFromUserName());
+            textMsgOut.setCreateTime(System.currentTimeMillis());
+            textMsgOut.setMsgType(msgIn.getMsgType());
 
-        textMsgOut.setContent("hello[微笑]:" + msgIn.getContent());
-        System.out.println("处理文本消息");
+            textMsgOut.setContent("hello[微笑]:" + msgIn.getContent());
+            System.out.println("处理文本消息");
+        }
+
         return textMsgOut;
     }
 
@@ -142,7 +189,8 @@ public class WeChatController {
 
         NewsItem newsItem = new NewsItem();
         newsItem.setDescription("这是我的文章，仅用于测试");
-        newsItem.setPicUrl("https://upload-images.jianshu.io/upload_images/14715425-a69dcd608265e3e4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/833/format/webp");
+//        newsItem.setPicUrl("https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1548828499305&di=6a3db7cd80001050f314c213689e1656&imgtype=0&src=http%3A%2F%2Fi2.hdslb.com%2Fbfs%2Farchive%2F331fd2a2c0759abfae396b55d4fc1658939641cc.jpg");
+        newsItem.setPicUrl("http://b197.photo.store.qq.com/psb?/V13aCDZF2zg2ID/PdK1yP*AgwOdAd2TUvSyKokD9bkfcIU3H3iIl0FcV*k!/b/dO70cXWTNAAA&bo=vwOAAgAAAAABBx4!&rf=viewer_4&t=5");
         newsItem.setTitle("测试一个文章");
         newsItem.setUrl("https://new.qq.com/cmsn/20190124/20190124004474.html");
 
@@ -159,18 +207,95 @@ public class WeChatController {
 
 
 
+//----------------------以下为测试区域-----------------------
+
     @ResponseBody
     @RequestMapping(value = "receiveMessage",method = RequestMethod.POST)
     public String receiveMessage(@RequestBody MsgIn messageIn){
         System.out.println(messageIn);
+
+
         return "hello";
     }
 
+
+    //    @Cacheable(value = "test", key = "'user_'.concat(#root.args[0])")
+    @Cacheable(value = "test", key = "'user_'.concat(#root.args[0])")
+    public String getStr(String userId){
+        System.out.println("得到userId");
+        return "hello:"+userId;
+    }
+
+
     @ResponseBody
     @RequestMapping("/webTest")
-    public String webTest(){
-        return "hello world";
+    public String webTest(@RequestParam String userId){
+
+        if (!CollectionUtils.isEmpty(cacheManager.getCacheNames())) {
+            System.out.println(cacheManager.getCacheNames().iterator().next());
+
+            ((Map)cacheManager.getCache("test").getNativeCache()).forEach((k,v) -> {
+                System.out.println("缓存值：" + k + ":" + v);
+            });
+
+        }
+        String name = testService.getUserName(userId);
+
+        return name;
+//        return "";
     }
+
+    @ResponseBody
+    @RequestMapping("/urlTest")
+    public String urlTest(){
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.getMessageConverters().set(1,new StringHttpMessageConverter(StandardCharsets.UTF_8));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        HttpEntity<String> entity = new HttpEntity<String>(headers);
+        String result = restTemplate.exchange("http://www.weather.com.cn/data/cityinfo/101200101.html", HttpMethod.GET, entity, String.class).getBody();
+
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping("/redisTest")
+    public String redisTest(){
+//        UserInfo user = new UserInfo("1","张三");
+//        redisTemplate.opsForValue().set("u",user);
+//
+//
+//        UserInfo u = (UserInfo) redisTemplate.opsForValue().get("u");
+//        System.out.println(u);
+
+//        Map<String,String> maps = new HashMap<String, String>();
+//        maps.put("multi1","multi1");
+//        maps.put("multi2","multi2");
+//        maps.put("multi3","multi3");
+//        redisTemplate.opsForValue().multiSet(maps);
+//        List<String> keys = new ArrayList<String>();
+//        keys.add("multi1");
+//        keys.add("multi2");
+//        keys.add("multi3");
+//        System.out.println(redisTemplate.opsForValue().multiGet(keys));
+
+        System.out.println(token+"...");
+
+        return "hello";
+    }
+
+
+    public static void main(String[] args) {
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.getMessageConverters().set(1,new StringHttpMessageConverter(StandardCharsets.UTF_8));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        HttpEntity<String> entity = new HttpEntity<String>(headers);
+        String result = restTemplate.exchange("https://www.hao123.com/", HttpMethod.GET, entity, String.class).getBody();
+        System.out.println(result);
+    }
+
+
 
     @ResponseBody
     @RequestMapping("/webXml")
@@ -182,4 +307,26 @@ public class WeChatController {
         return messageOut;
     }
 
+    @ResponseBody
+    @RequestMapping(value = "/task")
+    public String task(){
+        System.out.println(Thread.currentThread().getName() + ":" + "进方法1");
+
+        taskExecutor.execute(() -> {
+            System.out.println(Thread.currentThread().getName() + ":" + "进方法2");
+            try {
+                TimeUnit.SECONDS.sleep(3L);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName() + ":" + "出方法2");
+        });
+
+        asyncService.taskMethod();
+
+        System.out.println(Thread.currentThread().getName() + ":" + "出方法1");
+        return "task test";
+    }
+
 }
+
